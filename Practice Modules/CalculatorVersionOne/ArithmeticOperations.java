@@ -1,6 +1,6 @@
 package CalculatorVersionOne;
 
-public interface ArithmeticOperations {
+public interface ArithmeticOperations  {
     
     public scala.Double addition(Double lhs, Double rhs);
     public scala.Double subtraction(Double lhs, Double rhs);

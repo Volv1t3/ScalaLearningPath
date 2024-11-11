@@ -3,7 +3,7 @@ package CalculatorVersionOne
 import java.util.Scanner
 import scala.util.hashing.Hashing.Default
 
-object CalculatorDriver {
+object CalculatorDriver  {
 
   def main(args: Array[String]): Unit = {
     printf("%120s\n", "Hello and welcome to our Calculator")
