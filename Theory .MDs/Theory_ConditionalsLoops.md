@@ -131,11 +131,11 @@ package main;
 
 import java.lang.String as jString
 import java.util.LinkedList as jLinkedList
-
+import scala.util.Random
 class main {
 
   def main(args: Array[String]): Unit = {
-
+    
     //! Declaring a simple for loop
     /*
      * This loop makes the program print firs the pair of values for i,j and then prints the message if they are equal as well 
@@ -168,9 +168,193 @@ class main {
   //! Replicating the concept of forEach loops in Java
   var linkedList: jLinkedList[jString] = new jLinkedList[jString]()
   linkedList.addAll(java.util.List.of("Hello","World","Of","Scala"))
-  for(element <- linkedList) do {
-    println(element)
+  for
+    string: String <- linkedList.toArray(new Array[String](0))
+  do
+    println(string)
+}
+```
+</body>
+<p>In Scala, for loops are defined in terms of expression, and rich compiler support to infer the type of iteration that it 
+has to do to parse our data. In general, for comprehensions can be used for various use cases, for example, they could be used 
+to convert a range of data, or a set of values into another, or to yield results of calculations. Having seen normal for loops
+which do not result in any kind of alteration to our data, let us see those that do have side effects and how to use
+guards in expression to yield values directly inside our code.</p>
+<body>
+
+```scala 3
+package main
+
+import java.lang as javaLang
+import scala.util.Random
+import java.lang.Comparable
+import scala.math.Ordering
+
+implicit val intOrdering: Ordering[Int] = (int: Int, int1: Int) => int.compareTo(int1)
+
+object main {
+
+  def main(args: Array[String]): Unit = {
+    //! Let us define a simmple for (with previous baracket syntax for comparison)
+    var numbers: Array[Int] = Array.range(0, 20, 1);
+    numbers = Random.shuffle(numbers).toArray
+    println(numbers.mkString("Array(", ", ", ")"))
+
+    def selectionSort[E](array: Array[E])(implicit ordered: Ordering[E]): Unit = {
+      for
+        i <- 0 until (array.length - 1)
+      do
+        var least: Int = 0
+        var tempI: E = array.apply(i)
+        least = i
+        for
+          j <- i + 1 until array.length
+        do {
+          if ordered.compare(array.apply(j), array.apply(least)) < 0 then
+            least = j
+        }
+        var tempLeast: E = array.apply(least)
+        array.update(i, tempLeast)
+        array.update(least, tempI)
+    }
+
+    selectionSort(numbers)
+    println(numbers.mkString("Array(", ", ", ")"))
+
+    def combSort[E](array: Array[E])(implicit ordered: Ordering[E]): Unit = {
+      var Step: Int = array.length;
+      var j: Int = 0;
+      var k: Int = 0;
+      Step = (Step / 1.3).asInstanceOf[Int]
+      while ((Step) > 1) {
+        for
+          j <- array.length - 1 to(Step, -1)
+        do
+          k = j - Step
+          if (ordered.compare(array(j), array(j - 1)) < 0) then
+            var temp: E = array(j)
+            array(j) = array(k)
+            array(k) = temp
+          end if
+        Step = (Step / 1.3).asInstanceOf[Int]
+      }
+      //! Second Phase:=
+      var again: Boolean = true;
+      for
+        i <- 0 until (array.length - 1) if again
+      do
+        for
+          j <- array.length - 1 until(0, -1)
+        do
+          again = false
+          if (ordered.compare(array(j), array(j - 1)) < 0) then
+            var temp: E = array(j)
+            array(j) = array(j - 1)
+            array(j - 1) = temp
+            again = true
+          end if
+        end for
+      end for
+    }
+
+    Random.shuffle(numbers)
+    combSort(numbers)
+    println(numbers.mkString("Array(", ", ", ")"))
   }
+}
+```
+</body>
+<p>As can be noted by the code behind this statement, there is quite a bunch to unpack and various ways of making things
+that were nice additions and touches (and sometimes annoying little quirks of the language) that I want to unpack. Let us 
+begin with the way we can handle mutating for loops and the way we can define safeguards in our code.
+<br><br>
+These can be noted more clearly in methods like <code>combSort</code> defined earlier where we execute the comb sorting 
+algoruithm (a variation of bubble sort) on an array of type E that must have another implicit param passed into the method 
+(an ordering method for the data type defined outside this code scope) such that it can execute paired analysis on values.
+<br><br>
+The first example of this type of for loops that we can see is the first <q>combing pass</q> over the data points, where the for 
+loop (inside our while structure to be touched on later), performs a paired data point analysis to determine which is larger
+and subsequently <code>mutate the arguments of the caller to provide a certain order for it</code>. It is interesting to note the way the 
+do block analyzes the structure and determines that even the if statement is included within it. Moreover, we can see how the 
+<code>end {if}</code> statement is used inside the code to mark the exact moment where the if block ends, which then is followed by a 
+calculation, an update to the for, which <b>is not included within the do block</b> given that it shares the <b>same 
+indentation level, just like python.</b>
+<br><br>
+This implementation then shows how we can modify inputs and essentially make for loops mutate data. In the second phase
+of the algorithm however, we go further. Given that bubble sort always has a boolean flag indicating whether there should
+be any changes done to it after the first iteration, we included it outside the for loop for out-of-loop initialization.
+Additionally, here we can see the use of safeguards.
+</p>
+<blockquote style="font-style: italic; color: whitesmoke"> <q>Scala Programming: Safeguards Inside For Loops</q> 
+<p>In general, there are five things one can do with loops, we can either use a generator to produce some output on a collection,
+we can use it to traverse a collection, mutate a collection, or yield new values.
+<br><br>
+To do any of these tasks, we need a way to guard against certain values we do not want to allow, for example, printed out of a
+list of numbers. These guards or filters (analogous to java stream filter operation) are boolean operations that are placed
+within the for block or {} scope in our code.
+<br>
+</p>
+<q>Note: These guards tell the program <b>what to keep, not what to remove</b></q>
+</blockquote>
+<p>
+Take a look at the sentences below and contrast them to the java code presented here.
+</p>
+<body>
+
+```java
+//... previous code for comb sort
+boolean again = true;
+    for (int i = 0; i < n - 1 && again; i++) {
+        for (j = n - 1, again = false; j > 0; j--) {
+//...Rest of the code        
+```
+
+```scala 3
+ var again: Boolean = true;
+for
+  i <- 0 until (array.length - 1) if again
+do
+  for
+    j <- array.length - 1 until(0, -1)
+  do{}
+  end for
+end for  
+```
+</body>
+<p>In the general sense, scala is a bit longer but is clearer to understand. In the java code I present, notice how we are putting
+the loop condition as <code> i &ang; n -1 && again </code>, whilst in Scala this would look like <code> i 
+&angle;- 0 until (array.length -1 ) if again </code> does the exact same thing but using safeguards.
+<br><br>
+As I mentioned before, the concept of safeguards is basically telling the program to do something only if the condition in the
+if statement is correct. As we know, bubble sort checks this condition in the case the array is already sorted and the inner 
+code did not change this variable to false and true again. Therefore, we are reducing the amount of complexity in our code simply
+by using a conditional statement which helps us reduce the appropriate range of values accepted for a for loop.
+</p>
+<p>Another set of interesting tools that we can use with for loops is yielding new values, Optionals, and even generators.</p>
+<body>
+
+```scala 3
+package main;
+
+class main{
+
+  @main
+  def main(args: Array[String]): Unit = {
+    //! Declaring a for loop that generates, out of a sequence of values a set of squares
+    var arrayOfSquares: Array[Int] = new Array[Int](11)
+    for
+      number <- Array(0,1,2,3,4,5,6,7,8,9,10)
+    do
+      arrayOfSquares.update((number), number*number)
+    end for
+    println(arrayOfSquares.mkString("Array(", ", ", ")"))
+
+    //! Declaring a for loop that generates values out of a sequence and prints these values out
+    for
+      baseNumber <- arrayOfSquares
+    do
+      println(s"Squared Value:= $baseNumber\tBase Value:= ${Math.sqrt(baseNumber)}")
+  }  
 }
 ```
 </body>
